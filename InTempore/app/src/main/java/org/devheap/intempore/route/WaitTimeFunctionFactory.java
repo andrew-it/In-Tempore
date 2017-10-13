@@ -1,6 +1,9 @@
 package org.devheap.intempore.route;
 
+import com.google.maps.model.OpeningHours;
+
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Random;
 
@@ -31,7 +34,7 @@ public class WaitTimeFunctionFactory {
         types_map.put("default", new int[]{19, 12});
     }
 
-    public static WaitTimeFunction produceFunction(RoutePoint point) {
+    public static WaitTimeFunction produceFunction(final RoutePoint point) {
         if(types_map == null)
             init_types_map();
 
@@ -49,6 +52,17 @@ public class WaitTimeFunctionFactory {
         return new WaitTimeFunction() {
             @Override
             public int wait_time(int minute_of_day) {
+                Calendar calendar = Calendar.getInstance();
+                int current_day = calendar.get(Calendar.DAY_OF_WEEK);
+                OpeningHours.Period openClose = point.getDetails().openingHours.periods[current_day-1];
+
+                int close_mins = openClose.close.time.getHourOfDay() * 60 + openClose.close.time.getMinuteOfHour();
+                int open_mins = openClose.open.time.getHourOfDay() * 60 + openClose.open.time.getMinuteOfHour();
+
+                if(minute_of_day < open_mins)
+                    return open_mins - minute_of_day;
+                if(minute_of_day > close_mins)
+                    return 24*60 - minute_of_day + open_mins;
                 return (int)(function_result_map.get(definition)[minute_of_day%(60*24)]*50);
             }
         };
