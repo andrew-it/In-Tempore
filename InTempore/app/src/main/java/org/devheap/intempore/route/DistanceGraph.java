@@ -16,25 +16,26 @@ import org.joda.time.DateTimeZone;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import okhttp3.Route;
-
 public class DistanceGraph {
     public static final String TAG = "DistanceGraph";
 
-    private GeoApiContext context;
-    private RoutePoint[] points;
-    private ConcurrentHashMap<String, ConcurrentHashMap<String, List<Pair<Distance, Duration>>>> matrix
+    protected GeoApiContext context;
+    protected RoutePoint[] points;
+    protected ConcurrentHashMap<String, ConcurrentHashMap<String, List<Pair<Distance, Duration>>>> matrix
             = new ConcurrentHashMap<>();
 
-    private DistanceMatrixCache cache = new DistanceMatrixCache();
+    protected DistanceMatrixCache cache = new DistanceMatrixCache();
 
-    private AtomicInteger fetchingInProgress = new AtomicInteger(0);
+    protected AtomicInteger fetchingInProgress = new AtomicInteger(0);
+
+    public RoutePoint[] getRoutePoints() {
+        return points;
+    }
 
     public DistanceGraph(GeoApiContext context) {
         this.context = context;
@@ -64,11 +65,11 @@ public class DistanceGraph {
         return matrix.get(from_id).get(to_id).get(departure_hour);
     }
 
-    private void setDistanceDurationPair(int departure_hour, RoutePoint from, RoutePoint to, Pair<Distance, Duration> dist_duration) {
+    protected void setDistanceDurationPair(int departure_hour, RoutePoint from, RoutePoint to, Pair<Distance, Duration> dist_duration) {
         setDistanceDurationPair(departure_hour, from.getPlaceId(), to.getPlaceId(), dist_duration);
     }
 
-    private void setDistanceDurationPair(int departure_hour, String from_id, String to_id, Pair<Distance, Duration> dist_duration) {
+    protected void setDistanceDurationPair(int departure_hour, String from_id, String to_id, Pair<Distance, Duration> dist_duration) {
         matrix.get(from_id).get(to_id).set(departure_hour, dist_duration);
     }
 
