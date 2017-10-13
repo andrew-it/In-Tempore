@@ -39,4 +39,5 @@ public class RoutePoint {
     public void setFunction(WaitTimeFunction function) {
         this.function = function;
     }
+
 }

@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.database.MatrixCursor;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
+import android.support.v4.app.FragmentActivity;
 import android.support.v4.widget.CursorAdapter;
 import android.support.v4.widget.SimpleCursorAdapter;
 import android.support.v7.widget.SearchView;
@@ -34,8 +35,6 @@ import com.google.maps.model.DirectionsRoute;
 import com.google.maps.model.GeolocationPayload;
 import com.google.maps.model.GeolocationResult;
 import com.google.maps.model.PlaceAutocompleteType;
-
-import org.devheap.intempore.route.DistanceGraph;
 import org.devheap.intempore.route.RouteBuilder;
 import org.devheap.intempore.route.RoutePoint;
 
@@ -51,7 +50,6 @@ import static org.devheap.intempore.R.string.google_maps_key;
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
     private static final String ERROR_TAG = "SomeErrorTag";
     private static final String TAG = "MySuperTag";
-
     private Button button;
     private static GoogleMap mMap;
     public static String mapsApiKey = "AIzaSyBwProiHgcHKPpBwxZzGpjNfPFzC3Rl3SM";
@@ -106,7 +104,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         });
     }
-
 
     private void loadSuggestions(String query) {
         //showSuggestion();

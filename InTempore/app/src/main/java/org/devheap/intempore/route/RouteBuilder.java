@@ -109,7 +109,7 @@ public class RouteBuilder {
     }
 
     public void await() {
-        while(!isFinishedFetchingDetails()) {
+        while (!isFinishedFetchingDetails()) {
             try {
                 TimeUnit.MILLISECONDS.sleep(50);
             } catch (InterruptedException e) {
@@ -117,4 +117,5 @@ public class RouteBuilder {
             }
         }
     }
+
 }
