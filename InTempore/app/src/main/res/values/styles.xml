@@ -1,4 +1,4 @@
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Base application theme. -->
     <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
@@ -8,9 +8,11 @@
         <item name="colorAccent">@color/colorAccent</item>
     </style>
 
-    <style name="ButtonStyle">
-        <item name="android:colorBackground">@color/colorDark</item>
+    <style name="MyButtonStyle">
+        <item name="android:background">@color/colorDark</item>
         <item name="android:textColor">@android:color/white</item>
+        <item name="android:padding">8dp</item>
+        <item name="android:elevation" tools:targetApi="lollipop">5dp</item>
     </style>
 
 </resources>

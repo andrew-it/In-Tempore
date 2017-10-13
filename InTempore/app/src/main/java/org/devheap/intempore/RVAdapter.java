@@ -45,6 +45,11 @@ public class RVAdapter extends RecyclerView.Adapter<RVAdapter.RouteViewHolder> {
         return routePoints.size();
     }
 
+    public void removeItem(int position){
+        routePoints.remove(position);
+        notifyItemRemoved(position);
+    }
+
     public static class RouteViewHolder extends RecyclerView.ViewHolder{
         TextView textView;
         Button delete;

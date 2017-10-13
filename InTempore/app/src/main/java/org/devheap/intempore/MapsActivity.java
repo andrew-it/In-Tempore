@@ -165,14 +165,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         search.clearFocus();
 
 
-
-
         PlaceDetails results = routeBuilder.fetchPlaceDetails(result[position].placeId).await();
         MarkerOptions marker = new MarkerOptions()
                 .position(new LatLng(results.geometry.location.lat, results.geometry.location.lng));
         mMap.addMarker(marker);
         CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngZoom(new LatLng(results.geometry.location.lat, results.geometry.location.lng), 15.0f);
         mMap.animateCamera(cameraUpdate);
+
+        search.setQuery(results.name, false);
 
         button.setText("Добавить");
         button.setOnClickListener(new View.OnClickListener() {
