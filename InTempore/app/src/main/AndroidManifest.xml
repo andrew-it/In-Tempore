@@ -36,7 +36,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".FindPointsActivity"/>
+        <activity android:name=".AllPointsActivity"/>
 
         <meta-data
             android:name="com.google.android.geo.API_KEY"
