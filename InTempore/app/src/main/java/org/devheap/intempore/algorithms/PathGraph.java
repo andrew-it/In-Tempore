@@ -13,11 +13,17 @@ public class PathGraph {
     private final DateTime _initTime;
     private ArrayList<Vertex> _vertexList = new ArrayList<Vertex>();
     private DistanceGraph _edgeMatrix;
+    private Vertex _initial;
     private DateTime _timestamp = DateTime.now().plusHours(2);
     private int[][] _auxiliaryMatrix;
 
-    public PathGraph(DistanceGraph edgeMatrix, DateTime initTime) {
+    public PathGraph(DistanceGraph edgeMatrix, DateTime initTime, RoutePoint initial) {
+        _initial = new Vertex(initial);
+        _vertexList.add(_initial);
         for (RoutePoint rp : edgeMatrix.getRoutePoints()) {
+            if (rp.equals(initial)) {
+                continue;
+            }
             _vertexList.add(new Vertex(rp));
         }
         _edgeMatrix = edgeMatrix;
