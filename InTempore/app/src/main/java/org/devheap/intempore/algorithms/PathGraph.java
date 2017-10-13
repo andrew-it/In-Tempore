@@ -8,18 +8,17 @@ import org.joda.time.Interval;
 
 import java.util.ArrayList;
 
-// TODO: implement deep cloning
+// TODO: implement deep cloning?
 public class PathGraph {
     private final DateTime _initTime;
     private ArrayList<Vertex> _vertexList = new ArrayList<Vertex>();
     private DistanceGraph _edgeMatrix;
-    private DateTime _timestamp = null;
+    private DateTime _timestamp = DateTime.now().plusHours(2);
     private int[][] _auxiliaryMatrix;
 
     public PathGraph(DistanceGraph edgeMatrix, DateTime initTime) {
-        int count = 0;
         for (RoutePoint rp : edgeMatrix.getRoutePoints()) {
-            _vertexList.add(new Vertex(rp, count++));
+            _vertexList.add(new Vertex(rp));
         }
         _edgeMatrix = edgeMatrix;
         _initTime = initTime;
@@ -32,7 +31,7 @@ public class PathGraph {
     }
 
     public ArrayList<Vertex> vertices() {
-        return (ArrayList<Vertex>) _vertexList.clone();
+        return _vertexList;
     }
 
     public DateTime timestamp() {
@@ -52,9 +51,9 @@ public class PathGraph {
     }
 
     public Duration getEdge(Vertex from, Vertex to) {
-        int minutes = new Interval(_timestamp, _initTime).toDuration().toStandardMinutes()
-                .getMinutes() % (24 * 60);
+        int hours = new Interval(_initTime, _timestamp).toDuration().toStandardHours()
+                .getHours() % (24);
         return Duration.standardSeconds(_edgeMatrix.getDuration(
-                minutes, from.id(), to.id()).inSeconds);
+                hours, from.id(), to.id()).inSeconds);
     }
 }

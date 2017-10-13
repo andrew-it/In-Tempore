@@ -10,6 +10,6 @@ public class PrimBasedSearch extends PathAlgorithm {
     }
 
     protected void _prim(){
-        //TODO: Prim's algorithm
+        
     }
 }

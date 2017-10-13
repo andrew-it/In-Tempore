@@ -4,14 +4,12 @@ import org.devheap.intempore.route.RoutePoint;
 import org.joda.time.Duration;
 
 class Vertex {
-    private final int _orderingNumber;
     private RoutePoint _routePoint;
     private int _key;
     private Vertex _parent = null;
 
-    public Vertex(RoutePoint routePoint, int count) {
+    public Vertex(RoutePoint routePoint) {
         _routePoint = routePoint;
-        _orderingNumber = count;
     }
 
     public String id() {
@@ -30,10 +28,6 @@ class Vertex {
 
     public RoutePoint point() {
         return _routePoint;
-    }
-
-    public int ordering() {
-        return _orderingNumber;
     }
 
     public Vertex parent() {

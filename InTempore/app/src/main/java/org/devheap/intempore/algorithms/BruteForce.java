@@ -9,7 +9,12 @@ import java.util.ArrayList;
 public class BruteForce extends PathAlgorithm {
     public BruteForce(PathGraph graph) {
         _graph = graph;
+        vertices = _graph.vertices();
     }
+
+    private Duration totalDuration;
+    private ArrayList<Vertex> vertices;
+
 
     protected void _calculate() {
         ArrayList<PathGraph> graphs = new ArrayList<>();
@@ -21,36 +26,21 @@ public class BruteForce extends PathAlgorithm {
         }
 
         ArrayList<ArrayList<Integer>> permutations = _permute();
-        ArrayList<Vertex> vertices = _graph.vertices();
         Duration currentMinDuration = Duration.standardDays(365);
         ArrayList<Integer> currentBestPath = null;
         DateTime currentOptimalDepartureTime = null;
 
         for (PathGraph graph : graphs) {
             for (ArrayList<Integer> l : permutations) {
-                Duration totalDuration = new Duration(0);
-                _graph.timestamp(_graph.initTime());
-                for (int i = 0; i < l.size() - 1; i++) {
+                totalDuration = new Duration(0);
+                graph.timestamp(graph.initTime());
+                for (int i = 0; i < (l.size() - 1); i++) {
                     //add travel time
-                    totalDuration = totalDuration.plus(
-                            _graph.getEdge(vertices.get(l.get(i)), vertices.get(l.get(i + 1))));
-
-                    _graph.timestamp(
-                            _graph.timestamp().plus(
-                                    _graph.getEdge(
-                                            vertices.get(l.get(i)), vertices.get(l.get(i + 1)))));
-
-
-                    //add waiting time
-                    totalDuration = totalDuration.plus(
-                            vertices.get(l.get(i + 1)).weight(
-                                    new Duration(_graph.initTime(), _graph.timestamp())));
-
-                    _graph.timestamp(
-                            _graph.timestamp().plus(
-                                    vertices.get(l.get(i + 1)).weight(
-                                            new Duration(_graph.initTime(), _graph.timestamp()))));
+                    addOneEdge(graph, l.get(i), l.get(i+1));
                 }
+
+                addOneEdge(graph, l.get(l.size()-1), l.get(0));
+
                 if (totalDuration.compareTo(currentMinDuration) < 0) {
                     currentMinDuration = totalDuration;
                     currentBestPath = l;
@@ -65,9 +55,28 @@ public class BruteForce extends PathAlgorithm {
         }
         _pathData.startingTime = currentOptimalDepartureTime;
         _pathData.tripDuration = currentMinDuration;
-        //calculate the path length
-        //compare to current minima
-        //construct a PathData instance
+
+    }
+
+    private void addOneEdge(PathGraph graph, int i, int j) {
+        totalDuration = totalDuration.plus(
+                graph.getEdge(vertices.get(i), vertices.get(j)));
+
+        graph.timestamp(
+                graph.timestamp().plus(
+                        graph.getEdge(
+                                vertices.get(i), vertices.get(j))));
+
+
+        //add waiting time
+        totalDuration = totalDuration.plus(
+                vertices.get(j).weight(
+                        new Duration(graph.initTime(), graph.timestamp())));
+
+        graph.timestamp(
+                graph.timestamp().plus(
+                        vertices.get(j).weight(
+                                new Duration(graph.initTime(), graph.timestamp()))));
     }
 
 
