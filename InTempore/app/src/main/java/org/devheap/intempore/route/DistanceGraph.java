@@ -36,6 +36,10 @@ public class DistanceGraph {
 
     private AtomicInteger fetchingInProgress = new AtomicInteger(0);
 
+    public LinkedList<RoutePoint> getRoutePoints() {
+        return points;
+    }
+
     public DistanceGraph(GeoApiContext context) {
         this.context = context;
     }
