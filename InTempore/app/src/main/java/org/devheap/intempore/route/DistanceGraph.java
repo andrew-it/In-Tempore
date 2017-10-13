@@ -29,9 +29,8 @@ public class DistanceGraph {
     protected ConcurrentHashMap<String, ConcurrentHashMap<String, List<Pair<Distance, Duration>>>> matrix
             = new ConcurrentHashMap<>();
 
-    protected DistanceMatrixCache cache = new DistanceMatrixCache();
-
     protected AtomicInteger fetchingInProgress = new AtomicInteger(0);
+    private DistanceMatrixCache cache = null;
 
     public RoutePoint[] getRoutePoints() {
         return points;
