@@ -64,8 +64,8 @@ public class RouteBuilder {
                 new PendingResult.Callback<PlaceDetails>() {
                     @Override
                     public void onResult(PlaceDetails result) {
-                        Log.d(TAG, "Retrieved details for place " + placeId);
-                        Log.d(TAG, result.formattedAddress);
+                        Log.i(TAG, "Retrieved details for place " + placeId);
+                        Log.i(TAG, result.formattedAddress);
                         RoutePoint point = RoutePoint.create(placeId, result);
                         places.put(placeId, point);
                         runningFetchindDetails.decrementAndGet();
@@ -74,7 +74,7 @@ public class RouteBuilder {
                     @Override
                     public void onFailure(Throwable e) {
                         Log.e(TAG, "Couldn't retrieve places details for " + placeId);
-                        e.printStackTrace();
+                        Log.e(TAG, e.getLocalizedMessage());
                         runningFetchindDetails.decrementAndGet();
                     }
                 }

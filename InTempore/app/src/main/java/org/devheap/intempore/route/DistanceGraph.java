@@ -10,24 +10,31 @@ import com.google.maps.model.Distance;
 import com.google.maps.model.DistanceMatrix;
 import com.google.maps.model.Duration;
 
+import org.devheap.intempore.cache.DistanceMatrixCache;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import okhttp3.Route;
 
 public class DistanceGraph {
     public static final String TAG = "DistanceGraph";
 
     private GeoApiContext context;
-    private LinkedList<RoutePoint> points;
-    private ConcurrentHashMap<String, ConcurrentHashMap<String, ArrayList<Pair<Distance, Duration>>>> matrix
+    private RoutePoint[] points;
+    private ConcurrentHashMap<String, ConcurrentHashMap<String, List<Pair<Distance, Duration>>>> matrix
             = new ConcurrentHashMap<>();
 
-    private AtomicInteger fetchedCount = new AtomicInteger(0);
+    private DistanceMatrixCache cache = new DistanceMatrixCache();
+
+    private AtomicInteger fetchingInProgress = new AtomicInteger(0);
 
     public DistanceGraph(GeoApiContext context) {
         this.context = context;
@@ -65,14 +72,16 @@ public class DistanceGraph {
         matrix.get(from_id).get(to_id).set(departure_hour, dist_duration);
     }
 
-    public void fetchDistances(RoutePoint... points) {
+    public void loadDistanceMatrix(final RoutePoint... points) {
+        this.points = points;
+
         // Prepare container
         matrix.clear();
-        fetchedCount.set(0);
+        fetchingInProgress.set(0);
 
         // Initialize matrix
         for(RoutePoint from: points) {
-            ConcurrentHashMap<String, ArrayList<Pair<Distance, Duration>>> to_map = new ConcurrentHashMap<>();
+            ConcurrentHashMap<String, List<Pair<Distance, Duration>>> to_map = new ConcurrentHashMap<>();
             for(RoutePoint to: points) {
                 ArrayList<Pair<Distance, Duration>> hours = new ArrayList<>();
                 for(int i = 0; i < 24; i++) {
@@ -83,13 +92,35 @@ public class DistanceGraph {
             matrix.put(from.getPlaceId(), to_map);
         }
 
+      //  if(fillFromCache()) {
+      //      return;
+      //  }
+
+        fetchDistances();
+    }
+
+    private boolean fillFromCache() {
+        for(RoutePoint from: points) {
+            for(RoutePoint to: points) {
+                Pair<Distance, Duration>[] entry = cache.retrieve(from.getPlaceId(), to.getPlaceId());
+                if(entry == null) {
+                    return false;
+                }
+                Log.i(TAG, "Found entry " + from.getDetails().vicinity + " -> " + to.getDetails().vicinity + " in cache");
+                matrix.get(from.getPlaceId()).put(to.getPlaceId(), Arrays.asList(entry));
+            }
+        }
+        return true;
+    }
+
+    private void fetchDistances() {
         Log.d(TAG, "Started fetching Distance Matrices");
         for(int i = 0; i < 24; i++) {
-            fetchDistanceMatrix(i, points);
+            fetchDistanceMatrix(i);
         }
     }
 
-    private void fetchDistanceMatrix(final int departure_hour, final RoutePoint... points) {
+    private void fetchDistanceMatrix(final int departure_hour) {
         DateTime dateTime = DateTime.now(DateTimeZone.UTC);
         dateTime.plusHours(departure_hour);
 
@@ -100,6 +131,7 @@ public class DistanceGraph {
         }
 
         Log.d(TAG, "Started fetching Distance Matrix for T+" + departure_hour);
+        fetchingInProgress.incrementAndGet();
         DistanceMatrixApi.getDistanceMatrix(context, place_queries, place_queries)
                 .departureTime(dateTime)
                 .setCallback(new PendingResult.Callback<DistanceMatrix>() {
@@ -113,19 +145,30 @@ public class DistanceGraph {
                                 setDistanceDurationPair(departure_hour, points[i], points[j], Pair.create(dist, duration));
                             }
                         }
-                        fetchedCount.addAndGet(1);
+                        fetchingInProgress.decrementAndGet();
                     }
 
                     @Override
                     public void onFailure(Throwable e) {
                         Log.e(TAG, "Failed to fetch Distance Matrix for T+" + departure_hour);
+                        Log.e(TAG, e.getLocalizedMessage());
+                        e.printStackTrace();
+                        fetchingInProgress.decrementAndGet();
                     }
                 });
 
     }
 
     public boolean isFinishedFetchingMatrix() {
-        return fetchedCount.get() == 24;
+        if(fetchingInProgress.get() != 0) return false;
+        // Save cache
+        for(RoutePoint from: points) {
+            for(RoutePoint to: points) {
+                cache.store(from.getPlaceId(), to.getPlaceId(),
+                        matrix.get(from.getPlaceId()).get(to.getPlaceId()));
+            }
+        }
+        return true;
     }
 
     public void await() {
