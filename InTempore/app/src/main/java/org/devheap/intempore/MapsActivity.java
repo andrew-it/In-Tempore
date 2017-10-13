@@ -4,20 +4,14 @@ import android.app.SearchManager;
 import android.content.Context;
 import android.content.Intent;
 import android.database.MatrixCursor;
-import android.graphics.Path;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.support.v4.widget.CursorAdapter;
 import android.support.v4.widget.SimpleCursorAdapter;
-import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.SearchView;
-import android.support.v7.widget.Toolbar;
 import android.util.Log;
-import android.view.KeyEvent;
-import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
-import android.widget.EditText;
 
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -28,19 +22,22 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.maps.DirectionsApi;
-import com.google.maps.DirectionsApiRequest;
 import com.google.maps.GeoApiContext;
 import com.google.maps.GeolocationApi;
 import com.google.maps.PendingResult;
-import com.google.maps.PlaceAutocompleteRequest;
 import com.google.maps.PlacesApi;
 import com.google.maps.errors.ApiException;
 import com.google.maps.model.AutocompletePrediction;
 import com.google.maps.model.DirectionsResult;
 import com.google.maps.model.DirectionsRoute;
+import com.google.maps.model.GeolocationPayload;
+import com.google.maps.model.GeolocationResult;
+import com.google.maps.model.PlaceAutocompleteType;
+
+import org.devheap.intempore.route.RouteBuilder;
+import org.devheap.intempore.route.RoutePoint;
+
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
@@ -54,8 +51,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private static final String TAG = "MySuperTag";
 
     private Button button;
-    private GoogleMap mMap;
-    private String mapsApiKey;
+    private static GoogleMap mMap;
+    public static String mapsApiKey = "AIzaSyBwProiHgcHKPpBwxZzGpjNfPFzC3Rl3SM";
+    private RouteBuilder routeBuilder;
+    private boolean isAddItem = false;
+    private static int width;
+
+    public static Context baseContext;
+    AutocompletePrediction[] result;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -72,7 +75,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         button = (Button) findViewById(R.id.buttonNewPath);
 
+        routeBuilder = RouteBuilder.getInstance();
+
         initSearchView();
+
+        baseContext = getBaseContext();
+
+        width = getResources().getDisplayMetrics().widthPixels;
+        ;
     }
 
     private void initSearchView() {
@@ -89,18 +99,20 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             public boolean onQueryTextChange(String newText) {
                 System.out.println(newText);
                 loadSuggestions(newText);
+                //startAutocomplete(newText);
                 return true;
             }
         });
     }
 
-    AutocompletePrediction[] result;
 
     private void loadSuggestions(String query) {
+        //showSuggestion();
+
         String[] columns = new String[]{"_id", "name"};
         Object[] temp = new Object[]{0, "default"};
-        result = getAutocomplete(query);
         MatrixCursor cursor = new MatrixCursor(columns);
+        result = getAutocomplete(query);
         if (result != null) {
             for (int i = 0; i < result.length; i++) {
                 temp[0] = i;
@@ -112,7 +124,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             String[] from = {"name"};
             int[] to = new int[]{android.R.id.text1};
 
-            SimpleCursorAdapter simpleCursorAdapter = new SimpleCursorAdapter(getBaseContext(),
+            Context inContext = getBaseContext();
+
+            SimpleCursorAdapter simpleCursorAdapter = new SimpleCursorAdapter(baseContext,
                     android.R.layout.simple_list_item_1,
                     cursor, from, to,
                     CursorAdapter.FLAG_REGISTER_CONTENT_OBSERVER);
@@ -125,6 +139,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                 @Override
                 public boolean onSuggestionClick(int position) {
+
                     openNewElement(position);
                     return false;
                 }
@@ -133,14 +148,24 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     private void openNewElement(final int position) {
+        isAddItem = true;
         button.setText("Добавить");
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                final GeoApiContext context = new GeoApiContext.Builder()
-                        .apiKey("AIzaSyBwProiHgcHKPpBwxZzGpjNfPFzC3Rl3SM")
-                        .build();
-                //TODO result[position].placeId add here to places route
+                if (isAddItem) {//Добавить
+                    final GeoApiContext context = new GeoApiContext.Builder()
+                            .apiKey(mapsApiKey)
+                            .build();
+
+                    routeBuilder.addPlace(result[position].placeId);
+                    button.setText("Выбранные");
+                    isAddItem = false;
+                } else {//Выбранные
+                    Intent intent = new Intent(MapsActivity.this, AllPointsActivity.class);
+                    startActivity(intent);
+                }
+
             }
         });
     }
@@ -156,6 +181,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
      */
     @Override
     public void onMapReady(GoogleMap googleMap) {
+        mMap = googleMap;
         com.google.maps.model.LatLng origin = new com.google.maps.model.LatLng(55.799634, 49.121456);
         com.google.maps.model.LatLng destination = new com.google.maps.model.LatLng(55.753495, 48.742126);
         List<com.google.maps.model.LatLng> waypoints = new LinkedList<>();
@@ -163,15 +189,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         waypoints.add(new com.google.maps.model.LatLng(56.146615, 48.444906));
 
         GeoApiContext context = new GeoApiContext.Builder()
-                .apiKey("AIzaSyBwProiHgcHKPpBwxZzGpjNfPFzC3Rl3SM")
+                .apiKey(mapsApiKey)
                 .build();
 
-        drawPath(context, googleMap, origin, destination, waypoints);
+        //drawPath(context, googleMap, origin, destination, waypoints);
 
 
     }
 
-    private void drawPath(GeoApiContext context, GoogleMap googleMap, com.google.maps.model.LatLng origin, com.google.maps.model.LatLng destination, List<com.google.maps.model.LatLng> waypoints) {
+    public void drawPath(GeoApiContext context, GoogleMap googleMap, com.google.maps.model.LatLng origin, com.google.maps.model.LatLng destination, List<com.google.maps.model.LatLng> waypoints) {
 
         try {
             DirectionsResult result = DirectionsApi.newRequest(context)
@@ -201,6 +227,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
             googleMap.addPolyline(line);
             int size = getResources().getDisplayMetrics().widthPixels;
+
             LatLngBounds latLngBounds = latLngBuilder.build();
             CameraUpdate track = CameraUpdateFactory.newLatLngBounds(latLngBounds, size, size, 25);
             googleMap.moveCamera(track);
@@ -221,12 +248,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private AutocompletePrediction[] getAutocomplete(String s) {
         final GeoApiContext context = new GeoApiContext.Builder()
-                .apiKey("AIzaSyBwProiHgcHKPpBwxZzGpjNfPFzC3Rl3SM")
+                .apiKey(mapsApiKey)
                 .build();
 
-
         try {
-            AutocompletePrediction[] predictions = PlacesApi.placeAutocomplete(context, s).await();
+
+            //GeolocationResult result = GeolocationApi.geolocate(context, new GeolocationPayload()).await();
+
+            AutocompletePrediction[] predictions = PlacesApi.placeAutocomplete(context, s).type(PlaceAutocompleteType.ADDRESS).await();
             return predictions;
         } catch (ApiException e) {
             e.printStackTrace();
@@ -238,9 +267,128 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         return null;
     }
 
-    public void onButtonNewPath(View view) {
-        Intent intent = new Intent(this, FindPointsActivity.class);
-        startActivity(intent);
+
+    private void startAutocomplete(String s) {
+        final GeoApiContext context = new GeoApiContext.Builder()
+                .apiKey(mapsApiKey)
+                .build();
+        Context outContext = getBaseContext();
+
+        try {
+            GeolocationResult result = GeolocationApi.geolocate(context, new GeolocationPayload()).await();
+
+            PlacesApi.placeAutocomplete(context, s).type(PlaceAutocompleteType.ADDRESS).setCallback(new PendingResult.Callback<AutocompletePrediction[]>() {
+                @Override
+                public void onResult(AutocompletePrediction[] result) {
+                    System.out.println("SOME RESULT HAS COME");
+                    showSuggestion();
+                }
+
+                @Override
+                public void onFailure(Throwable e) {
+
+                }
+            });
+        } catch (ApiException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+
     }
+
+    public void showSuggestion() {
+
+        String[] columns = new String[]{"_id", "name"};
+        Object[] temp = new Object[]{0, "default"};
+        MatrixCursor cursor = new MatrixCursor(columns);
+        if (result != null) {
+            for (int i = 0; i < result.length; i++) {
+                temp[0] = i;
+                temp[1] = result[i].description;
+                cursor.addRow(temp);
+            }
+
+            SearchView search = (SearchView) findViewById(R.id.mySearchView);
+            String[] from = {"name"};
+            int[] to = new int[]{android.R.id.text1};
+
+            Context inContext = getBaseContext();
+
+            SimpleCursorAdapter simpleCursorAdapter = new SimpleCursorAdapter(baseContext,
+                    android.R.layout.simple_list_item_1,
+                    cursor, from, to,
+                    CursorAdapter.FLAG_REGISTER_CONTENT_OBSERVER);
+            search.setSuggestionsAdapter(simpleCursorAdapter);
+            search.setOnSuggestionListener(new SearchView.OnSuggestionListener() {
+                @Override
+                public boolean onSuggestionSelect(int position) {
+                    return false;
+                }
+
+                @Override
+                public boolean onSuggestionClick(int position) {
+
+                    openNewElement(position);
+                    return false;
+                }
+            });
+        }
+    }
+
+
+    public static void drawOptimizePath() throws InterruptedException, ApiException, IOException {
+        RouteBuilder routeBuilder = RouteBuilder.getInstance();
+
+        GeoApiContext context = new GeoApiContext.Builder()
+                .apiKey(mapsApiKey)
+                .build();
+
+        RoutePoint[] points = routeBuilder.getRoutePoints();
+
+        DirectionsResult result = null;
+        if (points.length > 2) {
+            com.google.maps.model.LatLng[] waypoints = new com.google.maps.model.LatLng[points.length - 2];
+
+            for (int i = 1; i < points.length - 1; i++) {
+                waypoints[i - 1] = points[i].getDetails().geometry.location;
+            }
+            result = DirectionsApi.newRequest(context)
+                    .origin(points[0].getDetails().geometry.location)//55.799634, 49.121456 Somewhere in Kazan
+                    .destination(points[points.length - 1].getDetails().geometry.location)//55.753495,48.742126 Somewhere in Innopolis
+                    .waypoints(waypoints).await();//55.769612, 48.976454 Somewhere in Hell, 56.146615, 48.444906 Somewhere in Park
+
+        } else {
+            result = DirectionsApi.newRequest(context)
+                    .origin(points[0].getDetails().geometry.location)//55.799634, 49.121456 Somewhere in Kazan
+                    .destination(points[points.length - 1].getDetails().geometry.location)//55.753495,48.742126 Somewhere in Innopolis
+                    .await();//55.769612, 48.976454 Somewhere in Hell, 56.146615, 48.444906 Somewhere in Park
+
+        }
+        DirectionsRoute[] routes = result.routes;
+
+        List<com.google.maps.model.LatLng> path = routes[0].overviewPolyline.decodePath();
+
+        PolylineOptions line = new PolylineOptions();
+
+        LatLngBounds.Builder latLngBuilder = new LatLngBounds.Builder();
+
+        for (int i = 0; i < path.size(); i++) {
+            line.add(new LatLng(path.get(i).lat, path.get(i).lng));
+            latLngBuilder.include(new LatLng(path.get(i).lat, path.get(i).lng));
+        }
+
+        line.width(4f).color(R.color.colorPrimary);
+
+        mMap.addPolyline(line);
+
+        LatLngBounds latLngBounds = latLngBuilder.build();
+        CameraUpdate track = CameraUpdateFactory.newLatLngBounds(latLngBounds, width, width, 25);
+        mMap.moveCamera(track);
+    }
+
 
 }

@@ -8,6 +8,8 @@ import com.google.maps.PendingResult;
 import com.google.maps.PlacesApi;
 import com.google.maps.model.PlaceDetails;
 
+import org.devheap.intempore.MapsActivity;
+
 import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -25,18 +27,27 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 public class RouteBuilder {
     public static final String TAG = "RouteBuilder";
 
-    private String mapsApiKey;
-    private GeoApiContext geoApiContext;
+    private static String mapsApiKey;
+    private static GeoApiContext geoApiContext;
 
-    private AtomicInteger runningFetchindDetails = new AtomicInteger(0);
+    private static AtomicInteger runningFetchindDetails = new AtomicInteger(0);
 
     // PlaceID to PlaceDetails
-    private ConcurrentHashMap<String, RoutePoint> places = new ConcurrentHashMap<>();
+    private static ConcurrentHashMap<String, RoutePoint> places = new ConcurrentHashMap<>();
 
-    DistanceGraph distances;
+    private static DistanceGraph distances;
+
+    private static RouteBuilder instance;
+
+    public static RouteBuilder getInstance(){
+        if(instance == null){
+            instance = new RouteBuilder(MapsActivity.mapsApiKey);
+        }
+        return instance;
+    }
 
 
-    public RouteBuilder(String mapsApiKey) {
+    private RouteBuilder(String mapsApiKey) {
         this.mapsApiKey = mapsApiKey;
 
         geoApiContext = new GeoApiContext.Builder()
