@@ -2,7 +2,6 @@ package org.devheap.intempore.route;
 
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.NavigableMap;
 import java.util.Random;
 
 import static java.lang.Math.pow;
@@ -33,8 +32,6 @@ public class WaitTimeFunctionFactory {
     }
 
     public static WaitTimeFunction produceFunction(RoutePoint point) {
-        // Здесь будет маппинг из параметров RoutePoint к соответствующим функциям
-
         if(types_map == null)
             init_types_map();
 
