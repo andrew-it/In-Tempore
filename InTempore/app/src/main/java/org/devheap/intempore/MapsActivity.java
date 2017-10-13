@@ -10,10 +10,12 @@ import android.support.v4.app.FragmentActivity;
 import android.support.v4.widget.CursorAdapter;
 import android.support.v4.widget.SimpleCursorAdapter;
 import android.support.v7.widget.SearchView;
+import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 
+import com.google.android.gms.common.api.PendingResults;
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -35,6 +37,9 @@ import com.google.maps.model.DirectionsRoute;
 import com.google.maps.model.GeolocationPayload;
 import com.google.maps.model.GeolocationResult;
 import com.google.maps.model.PlaceAutocompleteType;
+import com.google.maps.model.PlaceDetails;
+
+import org.devheap.intempore.route.DistanceGraph;
 import org.devheap.intempore.route.RouteBuilder;
 import org.devheap.intempore.route.RoutePoint;
 
@@ -57,8 +62,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private boolean isAddItem = false;
     private static int width;
 
-    public static Context baseContext;
     AutocompletePrediction[] result;
+
+    private SearchView search;
+    private Toolbar toolbar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -80,14 +87,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         initSearchView();
 
-        baseContext = getBaseContext();
-
         width = getResources().getDisplayMetrics().widthPixels;
+        toolbar = (Toolbar) findViewById(R.id.toolbar);
     }
 
     private void initSearchView() {
         SearchManager searchManager = (SearchManager) getSystemService(Context.SEARCH_SERVICE);
-        SearchView search = (SearchView) findViewById(R.id.mySearchView);
+        search = (SearchView) findViewById(R.id.mySearchView);
         search.setSearchableInfo(searchManager.getSearchableInfo(getComponentName()));
         search.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
@@ -119,13 +125,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 cursor.addRow(temp);
             }
 
-            SearchView search = (SearchView) findViewById(R.id.mySearchView);
+            search = (SearchView) findViewById(R.id.mySearchView);
             String[] from = {"name"};
             int[] to = new int[]{android.R.id.text1};
 
-            Context inContext = getBaseContext();
-
-            SimpleCursorAdapter simpleCursorAdapter = new SimpleCursorAdapter(baseContext,
+            SimpleCursorAdapter simpleCursorAdapter = new SimpleCursorAdapter(getBaseContext(),
                     android.R.layout.simple_list_item_1,
                     cursor, from, to,
                     CursorAdapter.FLAG_REGISTER_CONTENT_OBSERVER);
@@ -139,15 +143,37 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 @Override
                 public boolean onSuggestionClick(int position) {
 
-                    openNewElement(position);
+                    try {
+
+                        openNewElement(position);
+
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    } catch (ApiException e) {
+                        e.printStackTrace();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                     return false;
                 }
             });
         }
     }
 
-    private void openNewElement(final int position) {
+    private void openNewElement(final int position) throws InterruptedException, ApiException, IOException {
         isAddItem = true;
+        search.clearFocus();
+
+
+
+
+        PlaceDetails results = routeBuilder.fetchPlaceDetails(result[position].placeId).await();
+        MarkerOptions marker = new MarkerOptions()
+                .position(new LatLng(results.geometry.location.lat, results.geometry.location.lng));
+        mMap.addMarker(marker);
+        CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngZoom(new LatLng(results.geometry.location.lat, results.geometry.location.lng), 15.0f);
+        mMap.animateCamera(cameraUpdate);
+
         button.setText("Добавить");
         button.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -271,7 +297,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         final GeoApiContext context = new GeoApiContext.Builder()
                 .apiKey(mapsApiKey)
                 .build();
-        Context outContext = getBaseContext();
 
         try {
             GeolocationResult result = GeolocationApi.geolocate(context, new GeolocationPayload()).await();
@@ -311,13 +336,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 cursor.addRow(temp);
             }
 
-            SearchView search = (SearchView) findViewById(R.id.mySearchView);
+            search = (SearchView) findViewById(R.id.mySearchView);
             String[] from = {"name"};
             int[] to = new int[]{android.R.id.text1};
 
-            Context inContext = getBaseContext();
-
-            SimpleCursorAdapter simpleCursorAdapter = new SimpleCursorAdapter(baseContext,
+            SimpleCursorAdapter simpleCursorAdapter = new SimpleCursorAdapter(getBaseContext(),
                     android.R.layout.simple_list_item_1,
                     cursor, from, to,
                     CursorAdapter.FLAG_REGISTER_CONTENT_OBSERVER);
@@ -331,7 +354,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 @Override
                 public boolean onSuggestionClick(int position) {
 
-                    openNewElement(position);
+                    try {
+
+                        openNewElement(position);
+
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    } catch (ApiException e) {
+                        e.printStackTrace();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                     return false;
                 }
             });
@@ -348,7 +381,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         RoutePoint[] points = routeBuilder.getRoutePoints();
 
+        //Markers for places
+        for (int i = 0; i < points.length; i++) {
+            MarkerOptions marker = new MarkerOptions()
+                    .position(new LatLng(points[i].getDetails().geometry.location.lat, points[i].getDetails().geometry.location.lng));
+            mMap.addMarker(marker);
+        }
+
         DirectionsResult result = null;
+
+        //if not only origin and destination
         if (points.length > 2) {
             com.google.maps.model.LatLng[] waypoints = new com.google.maps.model.LatLng[points.length - 2];
 
@@ -360,7 +402,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     .destination(points[points.length - 1].getDetails().geometry.location)//55.753495,48.742126 Somewhere in Innopolis
                     .waypoints(waypoints).await();//55.769612, 48.976454 Somewhere in Hell, 56.146615, 48.444906 Somewhere in Park
 
-        } else {
+        } else {//if only origin and destination
             result = DirectionsApi.newRequest(context)
                     .origin(points[0].getDetails().geometry.location)//55.799634, 49.121456 Somewhere in Kazan
                     .destination(points[points.length - 1].getDetails().geometry.location)//55.753495,48.742126 Somewhere in Innopolis

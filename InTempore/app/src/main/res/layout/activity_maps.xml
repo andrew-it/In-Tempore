@@ -40,6 +40,7 @@ tools:context="org.devheap.intempore.MapsActivity">
         android:layout_marginBottom="49dp"
         android:text="Подобрать новый маршрут"
         android:layout_alignParentBottom="true"
-        android:layout_centerHorizontal="true"/>
+        android:layout_centerHorizontal="true"
+        style="@style/ButtonStyle"/>
 
 </RelativeLayout>
