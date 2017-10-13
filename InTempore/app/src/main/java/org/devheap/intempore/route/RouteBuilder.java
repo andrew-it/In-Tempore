@@ -1,5 +1,6 @@
 package org.devheap.intempore.route;
 
+import android.os.AsyncTask;
 import android.util.Log;
 
 import com.google.maps.GeoApiContext;
@@ -11,6 +12,15 @@ import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import com.google.maps.PlaceAutocompleteRequest;
+import com.google.maps.PlacesApi;
+import com.google.maps.model.PlaceDetails;
+
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class RouteBuilder {
     public static final String TAG = "RouteBuilder";
@@ -25,13 +35,13 @@ public class RouteBuilder {
 
     DistanceGraph distances;
 
+
     public RouteBuilder(String mapsApiKey) {
         this.mapsApiKey = mapsApiKey;
 
         geoApiContext = new GeoApiContext.Builder()
                 .apiKey(mapsApiKey)
                 .build();
-
         distances = new DistanceGraph(geoApiContext);
     }
 
@@ -39,6 +49,7 @@ public class RouteBuilder {
         Log.i(TAG, "Starting retrieving place details for " + placeId);
         runningFetchindDetails.addAndGet(1);
         fetchPlaceDetails(placeId).setCallback(
+
                 new PendingResult.Callback<PlaceDetails>() {
                     @Override
                     public void onResult(PlaceDetails result) {

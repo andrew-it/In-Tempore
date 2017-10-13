@@ -47,6 +47,8 @@ import java.util.List;
 
 import static org.devheap.intempore.R.string.google_maps_key;
 
+import static org.devheap.intempore.R.string.google_maps_key;
+
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
     private static final String ERROR_TAG = "SomeErrorTag";
     private static final String TAG = "MySuperTag";
