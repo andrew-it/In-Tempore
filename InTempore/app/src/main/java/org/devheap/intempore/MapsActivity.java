@@ -136,7 +136,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 String[] from = {"name"};
                 int[] to = new int[]{android.R.id.text1};
 
-                SimpleCursorAdapter simpleCursorAdapter = new SimpleCursorAdapter(baseContext,
+                SimpleCursorAdapter simpleCursorAdapter = new SimpleCursorAdapter(getBaseContext(),
                         android.R.layout.simple_list_item_1,
                         cursor, from, to,
                         CursorAdapter.FLAG_REGISTER_CONTENT_OBSERVER);
@@ -149,8 +149,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                     @Override
                     public boolean onSuggestionClick(int position) {
-
-                        openNewElement(position);
+                        try {
+                            openNewElement(position);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
                         return false;
                     }
                 });
