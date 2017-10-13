@@ -14,7 +14,8 @@ tools:context="org.devheap.intempore.MapsActivity">
         android:layout_width="match_parent"
         android:layout_height="50dp"
         android:background="@color/colorPrimary"
-        app:titleTextColor="@color/colorPrimaryText">
+        app:titleTextColor="@color/colorPrimaryText"
+        android:elevation="5dp">
         <android.support.v7.widget.SearchView
             android:layout_width="match_parent"
             android:layout_height="match_parent"
@@ -40,6 +41,7 @@ tools:context="org.devheap.intempore.MapsActivity">
         android:layout_marginBottom="49dp"
         android:text="Подобрать новый маршрут"
         android:layout_alignParentBottom="true"
-        android:layout_centerHorizontal="true"/>
+        android:layout_centerHorizontal="true"
+        style="@style/MyButtonStyle"/>
 
 </RelativeLayout>
