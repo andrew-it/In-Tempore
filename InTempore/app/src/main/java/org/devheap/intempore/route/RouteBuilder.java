@@ -38,7 +38,6 @@ public class RouteBuilder {
     public void addPlace(final String placeId) {
         Log.i(TAG, "Starting retrieving place details for " + placeId);
         runningFetchindDetails.addAndGet(1);
-        final RouteBuilder builder = this;
         fetchPlaceDetails(placeId).setCallback(
                 new PendingResult.Callback<PlaceDetails>() {
                     @Override
