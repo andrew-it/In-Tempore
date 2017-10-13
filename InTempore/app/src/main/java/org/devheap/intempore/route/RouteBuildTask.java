@@ -32,7 +32,7 @@ public class RouteBuildTask extends AsyncTask<Void, Void, List<RoutePoint>> {
 
     @Override
     protected List<RoutePoint> doInBackground(Void... voids) {
-        distances.fetchDistances((RoutePoint[]) points.values().toArray());
+        distances.loadDistanceMatrix((RoutePoint[]) points.values().toArray());
         distances.await();
 
         // Here will be call to real calculation class
