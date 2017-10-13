@@ -41,27 +41,28 @@ import com.google.maps.errors.ApiException;
 import com.google.maps.model.AutocompletePrediction;
 import com.google.maps.model.DirectionsResult;
 import com.google.maps.model.DirectionsRoute;
-import com.google.maps.model.GeolocationPayload;
-import com.google.maps.model.GeolocationResult;
-import com.google.maps.model.PlaceDetails;
-import com.google.maps.model.PlacesSearchResponse;
-import com.google.maps.model.PlacesSearchResult;
-
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+
+import static org.devheap.intempore.R.string.google_maps_key;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
     private static final String ERROR_TAG = "SomeErrorTag";
     private static final String TAG = "MySuperTag";
 
     private Button button;
+    private GoogleMap mMap;
+    private String mapsApiKey;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
+
+        // Obtain maps key from resources
+        mapsApiKey = getResources().getString(google_maps_key);
+
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);

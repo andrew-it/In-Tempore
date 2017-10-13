@@ -19,17 +19,20 @@ android {
     }
 }
 
+repositories {
+    mavenCentral()
+}
+
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
         exclude group: 'com.android.support', module: 'support-annotations'
     })
+    compile 'com.google.maps:google-maps-services:0.2.4'
+    compile 'org.slf4j:slf4j-nop:1.7.25'
     compile 'com.android.support:appcompat-v7:26.+'
     compile 'com.google.android.gms:play-services-maps:11.0.4'
     testCompile 'junit:junit:4.12'
-
-    compile 'com.google.maps:google-maps-services:0.2.4'
-    compile 'org.slf4j:slf4j-nop:1.7.25'
 }
 
 apply plugin: 'com.google.gms.google-services'
