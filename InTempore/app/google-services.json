@@ -1,0 +1,42 @@
+{
+  "project_info": {
+    "project_number": "371871422442",
+    "firebase_url": "https://intempore-d68e1.firebaseio.com",
+    "project_id": "intempore-d68e1",
+    "storage_bucket": "intempore-d68e1.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:371871422442:android:df36641b120f9f2c",
+        "android_client_info": {
+          "package_name": "org.devheap.intempore"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "371871422442-vk33slspkvh71h0ve4jn09jbfshdpu10.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDIS18LfHE3Etj0OzOQ-B4S618W-t023A0"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 1,
+          "other_platform_oauth_client": []
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
