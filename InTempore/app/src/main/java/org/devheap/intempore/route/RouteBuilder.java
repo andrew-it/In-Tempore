@@ -72,7 +72,7 @@ public class RouteBuilder {
                     @Override
                     public void onFailure(Throwable e) {
                         Log.e(TAG, "Couldn't retrieve places details for " + placeId);
-                        Log.e(TAG, e.getLocalizedMessage());
+                        e.printStackTrace();
                         runningFetchindDetails.decrementAndGet();
                     }
                 }
