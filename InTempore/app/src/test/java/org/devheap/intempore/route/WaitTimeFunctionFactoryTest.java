@@ -10,13 +10,13 @@ import static org.junit.Assert.*;
 public class WaitTimeFunctionFactoryTest {
     @Test
     public void produceFunctionXui() throws Exception {
-        WaitTimeFunction f = WaitTimeFunctionFactory.produceFunction(new RoutePoint("xui"));
+        WaitTimeFunction f = WaitTimeFunctionFactory.produceFunction(RoutePoint.create("xui", null));
         assertTrue(f.wait_time(567) >= 0);
     }
 
     @Test
     public void produceFunction() throws Exception {
-        WaitTimeFunction f = WaitTimeFunctionFactory.produceFunction(new RoutePoint("bank"));
+        WaitTimeFunction f = WaitTimeFunctionFactory.produceFunction(RoutePoint.create("bank", null));
         assertTrue(f.wait_time(567) >= 0);
     }
 

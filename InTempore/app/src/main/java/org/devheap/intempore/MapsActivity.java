@@ -69,6 +69,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         // Obtain maps key from resources
         mapsApiKey = getResources().getString(google_maps_key);
+        RouteBuilder.mapsApiKey = mapsApiKey;
 
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
@@ -84,7 +85,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         baseContext = getBaseContext();
 
         width = getResources().getDisplayMetrics().widthPixels;
-        ;
     }
 
     private void initSearchView() {

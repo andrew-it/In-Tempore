@@ -7,7 +7,8 @@ import static org.junit.Assert.*;
 public class DistanceGraphTest {
     @Test
     public void fetchDistances() throws Exception {
-        RouteBuilder routeBuilder = new RouteBuilder("AIzaSyBwProiHgcHKPpBwxZzGpjNfPFzC3Rl3SM");
+        RouteBuilder.mapsApiKey = "AIzaSyBwProiHgcHKPpBwxZzGpjNfPFzC3Rl3SM";
+        RouteBuilder routeBuilder = RouteBuilder.getInstance();
         routeBuilder.addPlace("ChIJYVe_3mn-W0ERom-Xu0sQdls"); // Medical Center
         routeBuilder.addPlace("ChIJ0zaR5RCtXkERA7GurKB4KEs"); // IU
         routeBuilder.addPlace("ChIJ4-it80yrXkERI6GK5y1usZs"); // Verkhny Uslon

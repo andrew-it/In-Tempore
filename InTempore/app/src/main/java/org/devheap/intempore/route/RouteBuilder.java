@@ -26,8 +26,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class RouteBuilder {
     public static final String TAG = "RouteBuilder";
+    public static String mapsApiKey;
 
-    private static String mapsApiKey;
     private static GeoApiContext geoApiContext;
 
     private static AtomicInteger runningFetchindDetails = new AtomicInteger(0);
@@ -41,15 +41,13 @@ public class RouteBuilder {
 
     public static RouteBuilder getInstance(){
         if(instance == null){
-            instance = new RouteBuilder(MapsActivity.mapsApiKey);
+            instance = new RouteBuilder();
         }
         return instance;
     }
 
 
-    private RouteBuilder(String mapsApiKey) {
-        this.mapsApiKey = mapsApiKey;
-
+    private RouteBuilder() {
         geoApiContext = new GeoApiContext.Builder()
                 .apiKey(mapsApiKey)
                 .build();
