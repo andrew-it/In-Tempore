@@ -58,6 +58,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private Button button;
     private static GoogleMap mMap;
     public static String mapsApiKey = "AIzaSyBwProiHgcHKPpBwxZzGpjNfPFzC3Rl3SM";
+    private static GeoApiContext geoApiContext;
+
     private RouteBuilder routeBuilder;
     private boolean isAddItem = false;
     private static int width;
@@ -75,6 +77,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         // Obtain maps key from resources
         mapsApiKey = getResources().getString(google_maps_key);
         RouteBuilder.mapsApiKey = mapsApiKey;
+
+        geoApiContext = new GeoApiContext.Builder()
+                .apiKey(mapsApiKey)
+                .build();
 
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
@@ -111,53 +117,54 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         });
     }
 
-    private void loadSuggestions(String query) {
-        //showSuggestion();
+    private void loadSuggestions(final String query) {
+        FetchAutocompletionAsyncTask task = new FetchAutocompletionAsyncTask(geoApiContext, query, new FetchAutocompletionAsyncTask.Callback() {
+            @Override
+            public void onSuccess(AutocompletePrediction[] predictions) {
+                result = predictions;
+                String[] columns = new String[]{"_id", "name"};
+                Object[] temp = new Object[]{0, "default"};
+                MatrixCursor cursor = new MatrixCursor(columns);
 
-        String[] columns = new String[]{"_id", "name"};
-        Object[] temp = new Object[]{0, "default"};
-        MatrixCursor cursor = new MatrixCursor(columns);
-        result = getAutocomplete(query);
-        if (result != null) {
-            for (int i = 0; i < result.length; i++) {
-                temp[0] = i;
-                temp[1] = result[i].description;
-                cursor.addRow(temp);
-            }
-
-            search = (SearchView) findViewById(R.id.mySearchView);
-            String[] from = {"name"};
-            int[] to = new int[]{android.R.id.text1};
-
-            SimpleCursorAdapter simpleCursorAdapter = new SimpleCursorAdapter(getBaseContext(),
-                    android.R.layout.simple_list_item_1,
-                    cursor, from, to,
-                    CursorAdapter.FLAG_REGISTER_CONTENT_OBSERVER);
-            search.setSuggestionsAdapter(simpleCursorAdapter);
-            search.setOnSuggestionListener(new SearchView.OnSuggestionListener() {
-                @Override
-                public boolean onSuggestionSelect(int position) {
-                    return false;
+                for (int i = 0; i < result.length; i++) {
+                    temp[0] = i;
+                    temp[1] = result[i].description;
+                    cursor.addRow(temp);
                 }
 
-                @Override
-                public boolean onSuggestionClick(int position) {
+                SearchView search = findViewById(R.id.mySearchView);
+                String[] from = {"name"};
+                int[] to = new int[]{android.R.id.text1};
 
-                    try {
-
-                        openNewElement(position);
-
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    } catch (ApiException e) {
-                        e.printStackTrace();
-                    } catch (IOException e) {
-                        e.printStackTrace();
+                SimpleCursorAdapter simpleCursorAdapter = new SimpleCursorAdapter(getBaseContext(),
+                        android.R.layout.simple_list_item_1,
+                        cursor, from, to,
+                        CursorAdapter.FLAG_REGISTER_CONTENT_OBSERVER);
+                search.setSuggestionsAdapter(simpleCursorAdapter);
+                search.setOnSuggestionListener(new SearchView.OnSuggestionListener() {
+                    @Override
+                    public boolean onSuggestionSelect(int position) {
+                        return false;
                     }
-                    return false;
-                }
-            });
-        }
+
+                    @Override
+                    public boolean onSuggestionClick(int position) {
+                        try {
+                            openNewElement(position);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                        return false;
+                    }
+                });
+            }
+            @Override
+            public void onError(Throwable e) {
+                Log.e(TAG, "Couldn't fetch autocompletion for " + query);
+                e.printStackTrace();
+            }
+        });
+        task.execute();
     }
 
     private void openNewElement(final int position) throws InterruptedException, ApiException, IOException {
@@ -213,171 +220,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         waypoints.add(new com.google.maps.model.LatLng(55.769612, 48.976454));
         waypoints.add(new com.google.maps.model.LatLng(56.146615, 48.444906));
 
-        GeoApiContext context = new GeoApiContext.Builder()
-                .apiKey(mapsApiKey)
-                .build();
-
-        //drawPath(context, googleMap, origin, destination, waypoints);
-
-
     }
-
-    public void drawPath(GeoApiContext context, GoogleMap googleMap, com.google.maps.model.LatLng origin, com.google.maps.model.LatLng destination, List<com.google.maps.model.LatLng> waypoints) {
-
-        try {
-            DirectionsResult result = DirectionsApi.newRequest(context)
-                    .origin(origin.toString())//55.799634, 49.121456 Somewhere in Kazan
-                    .destination(destination.toString())//55.753495,48.742126 Somewhere in Innopolis
-                    .waypoints(waypoints.get(0)).await();//55.769612, 48.976454 Somewhere in Hell, 56.146615, 48.444906 Somewhere in Park
-            DirectionsRoute[] routes = result.routes;
-
-            List<com.google.maps.model.LatLng> path = routes[0].overviewPolyline.decodePath();
-
-            PolylineOptions line = new PolylineOptions();
-
-            LatLngBounds.Builder latLngBuilder = new LatLngBounds.Builder();
-
-            for (int i = 0; i < path.size(); i++) {
-                if (i == 0) {
-                    MarkerOptions startMarker = new MarkerOptions()
-                            .position(new LatLng(path.get(i).lat, path.get(i).lng));
-                    googleMap.addMarker(startMarker);
-                }
-
-                line.add(new LatLng(path.get(i).lat, path.get(i).lng));
-                latLngBuilder.include(new LatLng(path.get(i).lat, path.get(i).lng));
-            }
-
-            line.width(4f).color(R.color.colorPrimary);
-
-            googleMap.addPolyline(line);
-            int size = getResources().getDisplayMetrics().widthPixels;
-
-            LatLngBounds latLngBounds = latLngBuilder.build();
-            CameraUpdate track = CameraUpdateFactory.newLatLngBounds(latLngBounds, size, size, 25);
-            googleMap.moveCamera(track);
-
-        } catch (ApiException e) {
-            e.printStackTrace();
-
-            Log.e(ERROR_TAG, "API EXCEPTION");
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-            Log.e(ERROR_TAG, "INTERRUPTED EXCEPTION");
-        } catch (IOException e) {
-            e.printStackTrace();
-            Log.e(ERROR_TAG, "IOEXCEPTION");
-        }
-    }
-
-
-    private AutocompletePrediction[] getAutocomplete(String s) {
-        final GeoApiContext context = new GeoApiContext.Builder()
-                .apiKey(mapsApiKey)
-                .build();
-
-        try {
-
-            //GeolocationResult result = GeolocationApi.geolocate(context, new GeolocationPayload()).await();
-
-            AutocompletePrediction[] predictions = PlacesApi.placeAutocomplete(context, s).type(PlaceAutocompleteType.ADDRESS).await();
-            return predictions;
-        } catch (ApiException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
-
-    private void startAutocomplete(String s) {
-        final GeoApiContext context = new GeoApiContext.Builder()
-                .apiKey(mapsApiKey)
-                .build();
-
-        try {
-            GeolocationResult result = GeolocationApi.geolocate(context, new GeolocationPayload()).await();
-
-            PlacesApi.placeAutocomplete(context, s).type(PlaceAutocompleteType.ADDRESS).setCallback(new PendingResult.Callback<AutocompletePrediction[]>() {
-                @Override
-                public void onResult(AutocompletePrediction[] result) {
-                    System.out.println("SOME RESULT HAS COME");
-                    showSuggestion();
-                }
-
-                @Override
-                public void onFailure(Throwable e) {
-
-                }
-            });
-        } catch (ApiException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-
-    }
-
-    public void showSuggestion() {
-
-        String[] columns = new String[]{"_id", "name"};
-        Object[] temp = new Object[]{0, "default"};
-        MatrixCursor cursor = new MatrixCursor(columns);
-        if (result != null) {
-            for (int i = 0; i < result.length; i++) {
-                temp[0] = i;
-                temp[1] = result[i].description;
-                cursor.addRow(temp);
-            }
-
-            search = (SearchView) findViewById(R.id.mySearchView);
-            String[] from = {"name"};
-            int[] to = new int[]{android.R.id.text1};
-
-            SimpleCursorAdapter simpleCursorAdapter = new SimpleCursorAdapter(getBaseContext(),
-                    android.R.layout.simple_list_item_1,
-                    cursor, from, to,
-                    CursorAdapter.FLAG_REGISTER_CONTENT_OBSERVER);
-            search.setSuggestionsAdapter(simpleCursorAdapter);
-            search.setOnSuggestionListener(new SearchView.OnSuggestionListener() {
-                @Override
-                public boolean onSuggestionSelect(int position) {
-                    return false;
-                }
-
-                @Override
-                public boolean onSuggestionClick(int position) {
-
-                    try {
-
-                        openNewElement(position);
-
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    } catch (ApiException e) {
-                        e.printStackTrace();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                    return false;
-                }
-            });
-        }
-    }
-
 
     public static void drawOptimizePath() throws InterruptedException, ApiException, IOException {
         RouteBuilder routeBuilder = RouteBuilder.getInstance();
-
-        GeoApiContext context = new GeoApiContext.Builder()
-                .apiKey(mapsApiKey)
-                .build();
 
         RoutePoint[] points = routeBuilder.getRoutePoints();
 
@@ -397,13 +243,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             for (int i = 1; i < points.length - 1; i++) {
                 waypoints[i - 1] = points[i].getDetails().geometry.location;
             }
-            result = DirectionsApi.newRequest(context)
+            result = DirectionsApi.newRequest(geoApiContext)
                     .origin(points[0].getDetails().geometry.location)//55.799634, 49.121456 Somewhere in Kazan
                     .destination(points[points.length - 1].getDetails().geometry.location)//55.753495,48.742126 Somewhere in Innopolis
                     .waypoints(waypoints).await();//55.769612, 48.976454 Somewhere in Hell, 56.146615, 48.444906 Somewhere in Park
-
-        } else {//if only origin and destination
-            result = DirectionsApi.newRequest(context)
+        } else {
+            result = DirectionsApi.newRequest(geoApiContext)
                     .origin(points[0].getDetails().geometry.location)//55.799634, 49.121456 Somewhere in Kazan
                     .destination(points[points.length - 1].getDetails().geometry.location)//55.753495,48.742126 Somewhere in Innopolis
                     .await();//55.769612, 48.976454 Somewhere in Hell, 56.146615, 48.444906 Somewhere in Park

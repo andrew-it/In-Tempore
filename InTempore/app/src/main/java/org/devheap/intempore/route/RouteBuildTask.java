@@ -4,6 +4,11 @@ import android.os.AsyncTask;
 
 import com.google.maps.PendingResult;
 
+import org.devheap.intempore.algorithms.BruteForce;
+import org.devheap.intempore.algorithms.PathAlgorithm;
+import org.devheap.intempore.algorithms.PathGraph;
+import org.joda.time.DateTime;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -11,14 +16,15 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
-public class RouteBuildTask extends AsyncTask<Void, Void, List<RoutePoint>> {
+public class RouteBuildTask extends AsyncTask<Void, Void, PathAlgorithm.PathData> {
     private ConcurrentHashMap<String, RoutePoint> points;
     private DistanceGraph distances;
     private Callback callback;
+    private Throwable e;
 
     public interface Callback {
-        void onResult(List<RoutePoint> point);
-        void onError();
+        void onSuccess(PathAlgorithm.PathData pathData);
+        void onError(Throwable e);
     }
 
     public RouteBuildTask(ConcurrentHashMap<String, RoutePoint> points, DistanceGraph distances) {
@@ -31,18 +37,24 @@ public class RouteBuildTask extends AsyncTask<Void, Void, List<RoutePoint>> {
     }
 
     @Override
-    protected List<RoutePoint> doInBackground(Void... voids) {
-        distances.loadDistanceMatrix((RoutePoint[]) points.values().toArray());
+    protected PathAlgorithm.PathData doInBackground(Void... voids) {
+        distances.loadDistanceMatrix(points.values().toArray(new RoutePoint[points.size()]));
         distances.await();
 
-        // Here will be call to real calculation class
-        return new ArrayList<>(points.values());
+        BruteForce bruteForce = new BruteForce(new PathGraph(distances, DateTime.now()));
+        return bruteForce.pathData();
     }
 
     @Override
-    protected void onPostExecute(List<RoutePoint> routePoints) {
+    protected void onPostExecute(PathAlgorithm.PathData pathData) {
         if(callback != null) {
-            callback.onResult(routePoints);
+            if (pathData != null) {
+                callback.onSuccess(pathData);
+            } else if(e != null) {
+                callback.onError(e);
+            } else {
+                throw new RuntimeException("Unreachable");
+            }
         }
     }
 }
