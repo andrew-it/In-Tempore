@@ -22,7 +22,7 @@ public class BruteForce extends PathAlgorithm {
         for (int i = 1; i < 24; i++) {
             graphs.add(
                     new PathGraph(
-                            _graph.matrix(), _graph.initTime().plus(Duration.standardHours(i))));
+                            _graph.matrix(), _graph.initTime().plus(Duration.standardHours(i)), _graph.initial().point()));
         }
 
         ArrayList<ArrayList<Integer>> permutations = _permute();

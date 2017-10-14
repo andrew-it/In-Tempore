@@ -101,7 +101,7 @@ public class RouteBuilder {
     }
 
     public RouteBuildTask build() {
-        return new RouteBuildTask(places, distances);
+        return new RouteBuildTask(distances);
     }
 
     public boolean isFinishedFetchingDetails() {

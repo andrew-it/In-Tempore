@@ -4,9 +4,10 @@ import android.app.SearchManager;
 import android.content.Context;
 import android.content.Intent;
 import android.database.MatrixCursor;
+import android.location.Location;
+import android.support.annotation.NonNull;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
-import android.support.v4.app.FragmentActivity;
 import android.support.v4.widget.CursorAdapter;
 import android.support.v4.widget.SimpleCursorAdapter;
 import android.support.v7.widget.SearchView;
@@ -15,7 +16,8 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 
-import com.google.android.gms.common.api.PendingResults;
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -25,31 +27,32 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.maps.DirectionsApi;
 import com.google.maps.GeoApiContext;
-import com.google.maps.GeolocationApi;
-import com.google.maps.PendingResult;
-import com.google.maps.PlacesApi;
+import com.google.maps.GeocodingApi;
 import com.google.maps.errors.ApiException;
 import com.google.maps.model.AutocompletePrediction;
 import com.google.maps.model.DirectionsResult;
 import com.google.maps.model.DirectionsRoute;
-import com.google.maps.model.GeolocationPayload;
-import com.google.maps.model.GeolocationResult;
-import com.google.maps.model.PlaceAutocompleteType;
+import com.google.maps.model.GeocodingResult;
 import com.google.maps.model.PlaceDetails;
 
-import org.devheap.intempore.route.DistanceGraph;
+import org.devheap.intempore.algorithms.PathAlgorithm;
+import org.devheap.intempore.async.FetchAutocompletionAsyncTask;
+import org.devheap.intempore.async.FetchDetailsAsyncTask;
+import org.devheap.intempore.async.ReverseGeocodeAsyncTask;
+import org.devheap.intempore.route.RouteBuildTask;
 import org.devheap.intempore.route.RouteBuilder;
 import org.devheap.intempore.route.RoutePoint;
 
 import java.io.IOException;
-import java.util.LinkedList;
 import java.util.List;
 
-import static junit.framework.Assert.assertNotNull;
-import static org.devheap.intempore.R.string.google_maps_key;
+import okhttp3.Route;
 
+import static junit.framework.Assert.assertNotNull;
 import static org.devheap.intempore.R.string.google_maps_key;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
@@ -68,6 +71,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private SearchView search;
     private Toolbar toolbar;
+
+    public static FusedLocationProviderClient mFusedLocationClient;
+    public static String  latestLocationId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -95,6 +101,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         width = getResources().getDisplayMetrics().widthPixels;
         toolbar = (Toolbar) findViewById(R.id.toolbar);
+
+        mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
     }
 
     private void initSearchView() {
@@ -150,7 +158,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     @Override
                     public boolean onSuggestionClick(int position) {
                         try {
-                            openNewElement(position);
+                            openNewElement(result[position].placeId);
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
@@ -167,39 +175,44 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         task.execute();
     }
 
-    private void openNewElement(final int position) throws InterruptedException, ApiException, IOException {
+    private void openNewElement(final String placeId) throws InterruptedException, ApiException, IOException {
         isAddItem = true;
         search.clearFocus();
 
-
-        PlaceDetails results = routeBuilder.fetchPlaceDetails(result[position].placeId).await();
-        MarkerOptions marker = new MarkerOptions()
-                .position(new LatLng(results.geometry.location.lat, results.geometry.location.lng));
-        mMap.addMarker(marker);
-        CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngZoom(new LatLng(results.geometry.location.lat, results.geometry.location.lng), 15.0f);
-        mMap.animateCamera(cameraUpdate);
-
-        search.setQuery(results.name, false);
-
-        button.setText("Добавить");
-        button.setOnClickListener(new View.OnClickListener() {
+        FetchDetailsAsyncTask fetchDetailsTask = new FetchDetailsAsyncTask(geoApiContext, placeId, new FetchDetailsAsyncTask.Callback() {
             @Override
-            public void onClick(View view) {
-                if (isAddItem) {//Добавить
-                    final GeoApiContext context = new GeoApiContext.Builder()
-                            .apiKey(mapsApiKey)
-                            .build();
+            public void onSuccess(PlaceDetails details) {
+                MarkerOptions marker = new MarkerOptions()
+                        .position(new LatLng(details.geometry.location.lat, details.geometry.location.lng));
+                mMap.addMarker(marker);
+                CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngZoom(new LatLng(details.geometry.location.lat, details.geometry.location.lng), 15.0f);
+                mMap.animateCamera(cameraUpdate);
 
-                    routeBuilder.addPlace(result[position].placeId);
-                    button.setText("Выбранные");
-                    isAddItem = false;
-                } else {//Выбранные
-                    Intent intent = new Intent(MapsActivity.this, AllPointsActivity.class);
-                    startActivity(intent);
-                }
+                search.setQuery(details.name, false);
 
+                button.setText("Добавить");
+                button.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        if (isAddItem) {//Добавить
+                            routeBuilder.addPlace(placeId);
+                            button.setText("Выбранные");
+                            isAddItem = false;
+                        } else {//Выбранные
+                            Intent intent = new Intent(MapsActivity.this, AllPointsActivity.class);
+                            startActivity(intent);
+                        }
+
+                    }
+                });
+            }
+
+            @Override
+            public void onError(Throwable e) {
+                e.printStackTrace();
             }
         });
+        fetchDetailsTask.execute();
     }
 
     /**
@@ -214,66 +227,113 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
-        com.google.maps.model.LatLng origin = new com.google.maps.model.LatLng(55.799634, 49.121456);
-        com.google.maps.model.LatLng destination = new com.google.maps.model.LatLng(55.753495, 48.742126);
-        List<com.google.maps.model.LatLng> waypoints = new LinkedList<>();
-        waypoints.add(new com.google.maps.model.LatLng(55.769612, 48.976454));
-        waypoints.add(new com.google.maps.model.LatLng(56.146615, 48.444906));
+        mFusedLocationClient.getLastLocation()
+                .addOnSuccessListener(new OnSuccessListener<Location>() {
+                    @Override
+                    public void onSuccess(Location location) {
+                        LatLng latlon = new LatLng(location.getLatitude(), location.getLongitude());
+                        CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngZoom(latlon, 15.0f);
+                        mMap.animateCamera(cameraUpdate);
+                        ReverseGeocodeAsyncTask reverseGeocodingTask = new ReverseGeocodeAsyncTask(geoApiContext,
+                                new com.google.maps.model.LatLng(latlon.latitude, latlon.longitude),
+                                new ReverseGeocodeAsyncTask.Callback() {
+                                    @Override
+                                    public void onSuccess(String placeId) {
+                                        try {
+                                            latestLocationId = placeId;
+                                            openNewElement(placeId);
+                                        } catch (Exception e) {
+                                            e.printStackTrace();
+                                        }
+                                    }
 
+                                    @Override
+                                    public void onError(Throwable e) {
+                                        Log.e(TAG, "Failed to determine starting point");
+                                        e.printStackTrace();
+                                    }
+                                });
+                        reverseGeocodingTask.execute();
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Log.i(TAG, "Failed to get current location");
+                        e.printStackTrace();
+                    }
+                });
     }
 
     public static void drawOptimizePath() throws InterruptedException, ApiException, IOException {
         RouteBuilder routeBuilder = RouteBuilder.getInstance();
 
-        RoutePoint[] points = routeBuilder.getRoutePoints();
+        RouteBuildTask task = routeBuilder.build();
+        task.setCallback(new RouteBuildTask.Callback() {
+            @Override
+            public void onSuccess(PathAlgorithm.PathData pathData) {
+                try {
+                    List<RoutePoint> points = pathData.pathSequence;
+                    DirectionsResult result;
 
-        //Markers for places
-        for (int i = 0; i < points.length; i++) {
-            MarkerOptions marker = new MarkerOptions()
-                    .position(new LatLng(points[i].getDetails().geometry.location.lat, points[i].getDetails().geometry.location.lng));
-            mMap.addMarker(marker);
-        }
+                    //if not only origin and destination
+                    if (points.size() > 2) {
+                        com.google.maps.model.LatLng[] waypoints = new com.google.maps.model.LatLng[points.size() - 2];
 
-        DirectionsResult result = null;
+                        for (int i = 1; i < points.size() - 1; i++) {
+                            waypoints[i - 1] = points.get(i).getDetails().geometry.location;
+                        }
+                        result = DirectionsApi.newRequest(geoApiContext)
+                                .origin(points.get(0).getDetails().geometry.location)//55.799634, 49.121456 Somewhere in Kazan
+                                .destination(points.get(points.size() - 1).getDetails().geometry.location)//55.753495,48.742126 Somewhere in Innopolis
+                                .waypoints(waypoints).await();//55.769612, 48.976454 Somewhere in Hell, 56.146615, 48.444906 Somewhere in Park
+                    } else {
+                        result = DirectionsApi.newRequest(geoApiContext)
+                                .origin(points.get(0).getDetails().geometry.location)//55.799634, 49.121456 Somewhere in Kazan
+                                .destination(points.get(points.size() - 1).getDetails().geometry.location)//55.753495,48.742126 Somewhere in Innopolis
+                                .await();//55.769612, 48.976454 Somewhere in Hell, 56.146615, 48.444906 Somewhere in Park
 
-        //if not only origin and destination
-        if (points.length > 2) {
-            com.google.maps.model.LatLng[] waypoints = new com.google.maps.model.LatLng[points.length - 2];
+                    }
+                    DirectionsRoute[] routes = result.routes;
 
-            for (int i = 1; i < points.length - 1; i++) {
-                waypoints[i - 1] = points[i].getDetails().geometry.location;
+                    List<com.google.maps.model.LatLng> path = routes[0].overviewPolyline.decodePath();
+
+                    PolylineOptions line = new PolylineOptions();
+
+                    LatLngBounds.Builder latLngBuilder = new LatLngBounds.Builder();
+
+                    for (int i = 0; i < path.size(); i++) {
+                        line.add(new LatLng(path.get(i).lat, path.get(i).lng));
+                        latLngBuilder.include(new LatLng(path.get(i).lat, path.get(i).lng));
+                    }
+
+                    line.width(16f).color(R.color.colorPrimary);
+
+                    mMap.addPolyline(line);
+
+                    LatLngBounds latLngBounds = latLngBuilder.build();
+                    CameraUpdate track = CameraUpdateFactory.newLatLngBounds(latLngBounds, width, width, 25);
+                    mMap.moveCamera(track);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
-            result = DirectionsApi.newRequest(geoApiContext)
-                    .origin(points[0].getDetails().geometry.location)//55.799634, 49.121456 Somewhere in Kazan
-                    .destination(points[points.length - 1].getDetails().geometry.location)//55.753495,48.742126 Somewhere in Innopolis
-                    .waypoints(waypoints).await();//55.769612, 48.976454 Somewhere in Hell, 56.146615, 48.444906 Somewhere in Park
-        } else {
-            result = DirectionsApi.newRequest(geoApiContext)
-                    .origin(points[0].getDetails().geometry.location)//55.799634, 49.121456 Somewhere in Kazan
-                    .destination(points[points.length - 1].getDetails().geometry.location)//55.753495,48.742126 Somewhere in Innopolis
-                    .await();//55.769612, 48.976454 Somewhere in Hell, 56.146615, 48.444906 Somewhere in Park
 
-        }
-        DirectionsRoute[] routes = result.routes;
+            @Override
+            public void onError(Throwable e) {
+                e.printStackTrace();
+            }
+        });
+        task.execute();
 
-        List<com.google.maps.model.LatLng> path = routes[0].overviewPolyline.decodePath();
+//        //Markers for places
+//        for (int i = 0; i < points.length; i++) {
+//            MarkerOptions marker = new MarkerOptions()
+//                    .position(new LatLng(points[i].getDetails().geometry.location.lat, points[i].getDetails().geometry.location.lng));
+//            mMap.addMarker(marker);
+//        }
 
-        PolylineOptions line = new PolylineOptions();
 
-        LatLngBounds.Builder latLngBuilder = new LatLngBounds.Builder();
-
-        for (int i = 0; i < path.size(); i++) {
-            line.add(new LatLng(path.get(i).lat, path.get(i).lng));
-            latLngBuilder.include(new LatLng(path.get(i).lat, path.get(i).lng));
-        }
-
-        line.width(4f).color(R.color.colorPrimary);
-
-        mMap.addPolyline(line);
-
-        LatLngBounds latLngBounds = latLngBuilder.build();
-        CameraUpdate track = CameraUpdateFactory.newLatLngBounds(latLngBounds, width, width, 25);
-        mMap.moveCamera(track);
     }
 
 

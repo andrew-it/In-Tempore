@@ -32,6 +32,10 @@ public class PathGraph {
         _auxiliaryMatrix = new int[_vertexList.size()][_vertexList.size()];
     }
 
+    public Vertex initial(){
+        return _initial;
+    }
+
     public DistanceGraph matrix() {
         return _edgeMatrix;
     }
