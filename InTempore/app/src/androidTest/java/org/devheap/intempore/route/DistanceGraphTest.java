@@ -17,7 +17,6 @@ public class DistanceGraphTest {
 
         DistanceGraph graph = new DistanceGraph(routeBuilder.getGeoApiContext());
         graph.loadDistanceMatrix(routeBuilder.getRoutePoints());
-        graph.await();
 
         for(RoutePoint from: routeBuilder.getRoutePoints()) {
             for(RoutePoint to: routeBuilder.getRoutePoints()) {

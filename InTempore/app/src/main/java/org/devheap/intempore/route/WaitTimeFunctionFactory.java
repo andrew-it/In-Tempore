@@ -54,10 +54,21 @@ public class WaitTimeFunctionFactory {
             public int wait_time(int minute_of_day) {
                 Calendar calendar = Calendar.getInstance();
                 int current_day = calendar.get(Calendar.DAY_OF_WEEK);
-                OpeningHours.Period openClose = point.getDetails().openingHours.periods[current_day-1];
 
-                int close_mins = openClose.close.time.getHourOfDay() * 60 + openClose.close.time.getMinuteOfHour();
-                int open_mins = openClose.open.time.getHourOfDay() * 60 + openClose.open.time.getMinuteOfHour();
+                int close_mins;
+                int open_mins;
+                /*
+                if(point.getDetails().openingHours != null
+                        && point.getDetails().openingHours.periods != null
+                        && point.getDetails().openingHours.periods[]) {
+                    OpeningHours.Period openClose = point.getDetails().openingHours.periods[current_day % point.getDetails().openingHours.periods.length];
+                    close_mins = openClose.close.time.getHourOfDay() * 60 + openClose.close.time.getMinuteOfHour();
+                    open_mins = openClose.open.time.getHourOfDay() * 60 + openClose.open.time.getMinuteOfHour();
+                } else {
+                */
+                    close_mins = 22 * 60;
+                    open_mins = 9 * 60;
+                //}
 
                 if(minute_of_day < open_mins)
                     return open_mins - minute_of_day;
